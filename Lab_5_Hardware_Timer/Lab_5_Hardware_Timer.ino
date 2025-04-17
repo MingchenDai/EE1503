@@ -2,18 +2,21 @@
 
 volatile unsigned int count = 0;
 
-void setup(){
+void setup()
+{
   Serial.begin(9600);
 
-  //set ISR timer isrTimer
-  SetTimer(isrTimer,20);
+  // set ISR timer isrTimer
+  SetTimer(isrTimer, 20);
 }
 
-void loop(){
+void loop()
+{
   Serial.println(count);
   delay(1);
 }
 
-void isrTimer(void){
+void isrTimer(void)
+{
   count++;
 }

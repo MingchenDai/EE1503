@@ -1,10 +1,10 @@
 /*
   DigitalReadSerial with on-board Pushbutton
-  Reads a digital input on pin 5, prints the result to the serial monitor 
- 
+  Reads a digital input on pin 5, prints the result to the serial monitor
+
   Harware Required:
   * MSP-EXP430G2 LaunchPad
-  
+
   This example code is in the public domain.
  */
 
@@ -12,7 +12,8 @@
 int pushButton = PUSH2;
 
 // the setup routine runs once when you press reset:
-void setup() {
+void setup()
+{
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600); // msp430g2231 must use 4800
   // make the on-board pushbutton's pin an input pullup:
@@ -20,10 +21,11 @@ void setup() {
 }
 
 // the loop routine runs over and over again forever:
-void loop() {
+void loop()
+{
   // read the input pin:
   int buttonState = digitalRead(pushButton);
   // print out the state of the button:
   Serial.println(buttonState);
-  delay(1);        // delay in between reads for stability
+  delay(1); // delay in between reads for stability
 }

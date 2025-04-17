@@ -1,29 +1,32 @@
 #include "Timer.h"
 
 // Define long push period
-#define COUNTER_THRESHOLD 50
+#define COUNTER_THRESHOLD 150
 
 // Define states of state machine
-#define IDLE 0
-#define SHORT 1
-#define LONG 2
+#define LOCK 0
+#define UNLOCK 1
+#define RELEASE 2
 
 // Intialize state of state machine and counter
 int state = 0;
-int timerCounter = 0;
+int timerCounter1 = 0;
+int timerCounter2 = 0;
+bool autoLockFlag = true;
 
 // Intialize state of button and led
 volatile int buttonState = HIGH;
 volatile int lastButtonState = HIGH;
 volatile int redLedState = HIGH;
-volatile int greenLedState = HIGH;
+volatile int greenLedState = LOW;
 
 void setup()
 {
   // Set leds to output modes
   pinMode(GREEN_LED, OUTPUT);
-  pinMode(PUSH1, INPUT_PULLUP);
   pinMode(RED_LED, OUTPUT);
+  pinMode(PUSH1, INPUT_PULLUP);
+  pinMode(PUSH2, INPUT_PULLUP);
   SetTimer(isrTimer, 19);
 }
 
@@ -37,13 +40,12 @@ void isrTimer(void)
   Button_SM();
 }
 
-// Detect long clicks
-bool longClickDect()
+bool push1LongClickDect()
 {
-  timerCounter++;
-  if (timerCounter == COUNTER_THRESHOLD)
+  timerCounter1++;
+  if (timerCounter1 == COUNTER_THRESHOLD)
   {
-    timerCounter = 0;
+    timerCounter1 = 0;
     return true;
   }
   else
@@ -52,26 +54,26 @@ bool longClickDect()
   }
 }
 
-// Actions for short click
 void shortRelease()
+{
+  if (redLedState == LOW)
+  {
+    greenLedState = !greenLedState;
+    digitalWrite(GREEN_LED, greenLedState);
+  }
+}
+
+void longClick()
 {
   redLedState = !redLedState;
   digitalWrite(RED_LED, redLedState);
 }
 
-// Actions for long click
-void longClick()
-{
-  greenLedState = !greenLedState;
-  digitalWrite(GREEN_LED, greenLedState);
-}
-
 void Button_SM()
 {
-  // Check statue of PUSH: 1 for Activated and 2 for Inactivated
-  unsigned char buttonDect = 0;
+  // Check statue of PUSH1: 1 for Activated and 2 for Inactivated
+  unsigned char buttonDect = 0; 
   buttonState = digitalRead(PUSH1);
-
   if ((lastButtonState == HIGH) && (buttonState == LOW))
   {
     buttonDect = 1;
@@ -81,13 +83,15 @@ void Button_SM()
   {
     buttonDect = 2;
   }
+  
   switch (state)
   {
-  case IDLE:
+  case LOCK:
     timerCounter = 0;
-    if (buttonDect == 1)
+    if (longClickDect())
     {
-      state = SHORT;
+      longClick();
+      state = LONG;
     }
     break;
   case SHORT:
