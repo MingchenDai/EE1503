@@ -1,21 +1,21 @@
 #include "Timer.h"
-
-volatile int state = 0;
+#define COUNTER_THRESHOLD 50
+#define IDLE 0
+#define SHORT 1
+#define LONG 2
+int state = 0;
 int timerCounter = 0;
-const int COUNTER_THRESHOLD=50;
-const int IDLE=0;
-const int SHORT=1;
-const int LONG=2;
-int buttonState=HIGH;
-int lastButtonState=HIGH;
-int redLedState=HIGH;
-int greenLedState=HIGH;
+volatile int buttonState=HIGH;
+volatile int lastButtonState=HIGH;
+volatile int redLedState=HIGH;
+volatile int greenLedState=HIGH;
 
 void setup() {
   Serial.begin(9600);
   pinMode(GREEN_LED,OUTPUT);
-  pinMode(PUSH2,INPUT_PULLUP);
-  SetTimer(isrTimer,20);
+  pinMode(PUSH1,INPUT_PULLUP);
+  pinMode(RED_LED,OUTPUT);
+  SetTimer(isrTimer,19);
 }
 
 void loop(){
@@ -58,6 +58,9 @@ void Button_SM(){
   if((lastButtonState == LOW)&&(buttonState == HIGH)){
     buttonDect = 2;
   }
+  Serial.print(state);
+  Serial.print(buttonState);
+  Serial.println(lastButtonState);
   switch(state){
     case IDLE:
       timerCounter = 0;
