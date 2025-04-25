@@ -44,6 +44,7 @@ void longPressAction2();
 void shortPressAction1();
 void shortPressAction2();
 void setLedStatus();
+void longSystemAction();
 void isrTimer();
 
 // Setup the program
@@ -168,7 +169,7 @@ void longSystemAction()
 
 void loop()
 {
-    setLedStatus();
+    delay(0);
 }
 
 void isrTimer()
@@ -227,7 +228,7 @@ void isrTimer()
         }
         break;
     default:
-        state = IDLE;
+        buttonState1 = IDLE;
         break;
     }
 
@@ -259,7 +260,8 @@ void isrTimer()
         }
         break;
     default:
-        state = IDLE;
+        buttonState2 = IDLE;
         break;
     }
+    setLedStatus();
 }
