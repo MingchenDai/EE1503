@@ -1,1 +1,13 @@
 /.vscode/
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.dvi
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.run.xml

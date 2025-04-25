@@ -10,9 +10,8 @@
 
 // Define status of system
 #define LOCKED 0
-#define UNLOCKED_AUTO 1   // Unlock with auto relock
-#define UNLOCKED_MANUAL 2 // Unlock without auto relock
-#define RELEASED 3
+#define UNLOCKED 1
+#define RELEASED 2
 
 // Intialize state of each button
 volatile int buttonState1 = IDLE;
@@ -38,7 +37,6 @@ volatile int systemStatus = LOCKED;
 
 // Claim function prototypes
 bool longPressDect1();
-bool longPressDect2();
 void longPressAction1();
 void longPressAction2();
 void shortPressAction1();
@@ -61,7 +59,7 @@ void setup()
     digitalWrite(GREEN_LED, greenLedStatus);
 
     // Initialize the timer
-    SetTimer(isrTimer, 20);
+    SetTimer(isrTimer, 19);
 }
 
 void setLedStatus()
@@ -72,11 +70,7 @@ void setLedStatus()
         redLedStatus = HIGH;
         greenLedStatus = LOW;
         break;
-    case UNLOCKED_AUTO:
-        redLedStatus = LOW;
-        greenLedStatus = LOW;
-        break;
-    case UNLOCKED_MANUAL:
+    case UNLOCKED:
         redLedStatus = LOW;
         greenLedStatus = LOW;
         break;
@@ -103,51 +97,28 @@ bool longPressDect1()
     }
 }
 
-bool longPressDect2()
-{
-    buttonCounter2++;
-    if (buttonCounter2 == COUNTER_THRESHOLD)
-    {
-        buttonCounter2 = 0;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 void longPressAction1()
 {
-    if (systemStatus == UNLOCKED_AUTO)
+    if (systemStatus == LOCKED)
     {
-        systemStatus = UNLOCKED_MANUAL;
-    }
-}
-
-void longPressAction2()
-{
-    if (systemStatus == UNLOCKED_MANUAL)
-    {
-        systemStatus = UNLOCKED_AUTO;
+        systemStatus = UNLOCKED;
     }
 }
 
 void shortPressAction1()
 {
+    if (systemStatus == UNLOCKED && !(lastButtonStatus2 == LOW && buttonStatus2 == LOW))
+    {
+        systemStatus = LOCKED;
+    }
 }
 
 void shortPressAction2()
 {
     switch (systemStatus)
     {
-    case UNLOCKED_AUTO:
+    case UNLOCKED:
         systemStatus = RELEASED;
-        systemCounter = 0;
-        break;
-    case UNLOCKED_MANUAL:
-        systemStatus = RELEASED;
-        systemCounter = 0;
         break;
     case RELEASED:
         systemStatus = LOCKED;
@@ -159,17 +130,24 @@ void shortPressAction2()
 
 void longSystemAction()
 {
-    systemCounter++;
-    if (systemCounter == COUNTER_THRESHOLD && systemStatus == UNLOCKED_AUTO)
+    if (systemStatus == UNLOCKED)
     {
-        systemStatus = LOCKED;
+        systemCounter++;
+        if (systemCounter == COUNTER_THRESHOLD && systemStatus == UNLOCKED && !(lastButtonStatus2 == LOW && buttonStatus2 == LOW))
+        {
+            systemStatus = LOCKED;
+            systemCounter = 0;
+        }
+    }
+    else
+    {
         systemCounter = 0;
     }
 }
 
 void loop()
 {
-    delay(0);
+    delay(1);
 }
 
 void isrTimer()
@@ -177,28 +155,28 @@ void isrTimer()
     // Read the status of the buttons
     unsigned char buttonDect1 = 0;
     unsigned char buttonDect2 = 0;
-    buttonState1 = digitalRead(PUSH1);
-    buttonState2 = digitalRead(PUSH2);
+    buttonStatus1 = digitalRead(PUSH1);
+    buttonStatus2 = digitalRead(PUSH2);
 
     // Check if the button is pressed
-    if ((lastButtonStatus1 == HIGH) && (buttonState1 == LOW))
+    if ((lastButtonStatus1 == HIGH) && (buttonStatus1 == LOW))
     {
         buttonDect1 = 1;
     }
-    else if ((lastButtonStatus1 == LOW) && (buttonState1 == HIGH))
+    else if ((lastButtonStatus1 == LOW) && (buttonStatus1 == HIGH))
     {
         buttonDect1 = 2;
     }
-    if ((lastButtonStatus2 == HIGH) && (buttonState2 == LOW))
+    if ((lastButtonStatus2 == HIGH) && (buttonStatus2 == LOW))
     {
         buttonDect2 = 1;
     }
-    else if ((lastButtonStatus2 == LOW) && (buttonState2 == HIGH))
+    else if ((lastButtonStatus2 == LOW) && (buttonStatus2 == HIGH))
     {
         buttonDect2 = 2;
     }
-    lastButtonStatus1 = buttonState1;
-    lastButtonStatus2 = buttonState2;
+    lastButtonStatus1 = buttonStatus1;
+    lastButtonStatus2 = buttonStatus2;
 
     switch (buttonState1)
     {
@@ -247,21 +225,11 @@ void isrTimer()
             shortPressAction2();
             buttonState2 = IDLE;
         }
-        else if (longPressDect21())
-        {
-            longPressAction2();
-            buttonState2 = LONG;
-        }
-        break;
-    case LONG:
-        if (buttonDect2 == 2)
-        {
-            buttonState2 = IDLE;
-        }
         break;
     default:
         buttonState2 = IDLE;
         break;
     }
+    longSystemAction();
     setLedStatus();
 }
