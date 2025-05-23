@@ -27,6 +27,7 @@ volatile int lastButtonStatus2 = HIGH;
 volatile int buttonCounter1 = 0;
 volatile int buttonCounter2 = 0;
 volatile int systemCounter = 0;
+volatile int doubleCounter = 0;
 
 // Intialize status of LED
 volatile int redLedStatus = HIGH;
@@ -35,6 +36,8 @@ volatile int greenLedStatus = LOW;
 // Intialize status of system
 volatile int systemStatus = LOCKED;
 volatile bool isDoubleClick = false;
+volatile bool isBothPressed = false;
+
 // Claim function prototypes
 bool longPressDect1();
 void longPressAction1();
@@ -59,7 +62,7 @@ void setup()
     digitalWrite(GREEN_LED, greenLedStatus);
 
     // Initialize the timer
-    SetTimer(isrTimer, 19);
+    SetTimer(isrTimer, 20);
 }
 
 void setLedStatus()
@@ -86,15 +89,18 @@ void setLedStatus()
 bool longPressDect1()
 {
     buttonCounter1++;
-    if (buttonCounter1 == COUNTER_THRESHOLD)
+    if ((buttonStatus1 == LOW && buttonStatus2 == LOW) || isBothPressed == true)
+    {
+        buttonCounter1 = 0;
+        isBothPressed = true;
+        return false;
+    }
+    if (buttonCounter1 == COUNTER_THRESHOLD * 2)
     {
         buttonCounter1 = 0;
         return true;
     }
-    else
-    {
-        return false;
-    }
+    return false;
 }
 
 void longPressAction1()
@@ -107,10 +113,10 @@ void longPressAction1()
 
 void shortPressAction1()
 {
-    if (systemStatus == UNLOCKED && !(lastButtonStatus2 == LOW && buttonStatus2 == LOW))
-    {
-        systemStatus = LOCKED;
-    }
+    // if (systemStatus == UNLOCKED && !(lastButtonStatus2 == LOW && buttonStatus2 == LOW))
+    // {
+    //     systemStatus = LOCKED;
+    // }
 }
 
 void shortPressAction2()
@@ -123,8 +129,6 @@ void shortPressAction2()
     case RELEASED:
         systemStatus = LOCKED;
         break;
-    default:
-        break;
     }
 }
 
@@ -133,9 +137,16 @@ void longSystemAction()
     if (systemStatus == UNLOCKED)
     {
         systemCounter++;
-        if (systemCounter == COUNTER_THRESHOLD && systemStatus == UNLOCKED && !(lastButtonStatus2 == LOW && buttonStatus2 == LOW))
+        if (buttonStatus1 == LOW)
         {
-            systemStatus = LOCKED;
+            systemCounter = 0;
+        }
+        if (systemCounter == COUNTER_THRESHOLD)
+        {
+            if (systemStatus == UNLOCKED && !(lastButtonStatus1 == LOW && buttonStatus1 == LOW))
+            {
+                systemStatus = LOCKED;
+            }
             systemCounter = 0;
         }
     }
@@ -145,66 +156,55 @@ void longSystemAction()
     }
 }
 
+bool doubleClickDect()
+{
+    if (isDoubleClick && doubleCounter <= 15)
+    {
+
+        isDoubleClick = !isDoubleClick;
+        doubleCounter = 0;
+        return true;
+    }
+    doubleCounter = 0;
+    isDoubleClick = !isDoubleClick;
+    return false;
+}
+
 void loop()
 {
-    delay(1);
 }
 
 void isrTimer()
 {
-    // Read the status of the buttons
     unsigned char buttonDect1 = 0;
     unsigned char buttonDect2 = 0;
     buttonStatus1 = digitalRead(PUSH1);
     buttonStatus2 = digitalRead(PUSH2);
 
-    // Check if the button is pressed
     if ((lastButtonStatus1 == HIGH) && (buttonStatus1 == LOW))
-    {
         buttonDect1 = 1;
-    }
     else if ((lastButtonStatus1 == LOW) && (buttonStatus1 == HIGH))
-    {
         buttonDect1 = 2;
-    }
     if ((lastButtonStatus2 == HIGH) && (buttonStatus2 == LOW))
-    {
         buttonDect2 = 1;
-    }
     else if ((lastButtonStatus2 == LOW) && (buttonStatus2 == HIGH))
-    {
         buttonDect2 = 2;
-    }
-    lastButtonStatus1 = buttonStatus1;
-    lastButtonStatus2 = buttonStatus2;
 
     switch (buttonState1)
     {
     case IDLE:
         buttonCounter1 = 0;
         if (buttonDect1 == 1)
-        {
             buttonState1 = SHORT;
-        }
         break;
     case SHORT:
         if (buttonDect1 == 2)
         {
             shortPressAction1();
             buttonState1 = IDLE;
-            if (isDoubleClick)
-            {
-                if (buttonCounter2 < 15)
-                {
-                    systemStatus = LOCKED;
-                }
-                buttonCounter2 = 0;
-                isDoubleClick = false;
-            }
-            else
-            {
-                isDoubleClick = true;
-            }
+            //            if(doubleClickDect()){
+            //                systemStatus=LOCKED;
+            //            }
         }
         else if (longPressDect1())
         {
@@ -214,9 +214,7 @@ void isrTimer()
         break;
     case LONG:
         if (buttonDect1 == 2)
-        {
             buttonState1 = IDLE;
-        }
         break;
     default:
         buttonState1 = IDLE;
@@ -228,9 +226,7 @@ void isrTimer()
     case IDLE:
         buttonCounter2 = 0;
         if (buttonDect2 == 1)
-        {
             buttonState2 = SHORT;
-        }
         break;
     case SHORT:
         if (buttonDect2 == 2)
@@ -241,12 +237,17 @@ void isrTimer()
         break;
     default:
         buttonState2 = IDLE;
-        break;
-    }
-    if (isDoubleClick)
-    {
-        buttonCounter2++;
     }
     longSystemAction();
     setLedStatus();
+    if (buttonStatus1 == HIGH && buttonStatus2 == HIGH)
+    {
+        isBothPressed = false;
+    }
+    lastButtonStatus1 = buttonStatus1;
+    lastButtonStatus2 = buttonStatus2;
+
+    //    if(isDoubleClick){
+    //        doubleCounter++;
+    //    }
 }
